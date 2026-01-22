@@ -2,9 +2,7 @@
 
 # <img src="docs/static/logo.png" width="45" align="center"> Save Any Bot
 
-**English** | [简体中文](./README_zh.md)
-
-> **Save Any Telegram File to Anywhere 📂. This fork adds chunked upload for OpenList/WebDAV to bypass Cloudflare upload limits.**
+> **把 Telegram 上的文件转存到多种存储端。本版本新增分片上传接收端，用于绕过 Cloudflare 100MB 限制并适配 OpenList 本地存储。**
 
 [![Release Date](https://img.shields.io/github/release-date/Haruka041/SaveAny-Bot?label=release)](https://github.com/Haruka041/SaveAny-Bot/releases)
 [![tag](https://img.shields.io/github/v/tag/Haruka041/SaveAny-Bot.svg)](https://github.com/Haruka041/SaveAny-Bot/releases)
@@ -17,54 +15,54 @@
 
 </div>
 
-## Overview
+## 概述
 
-SaveAny-Bot is a Telegram bot that saves files/messages from Telegram and various websites to multiple storage backends. This fork adds a chunked upload receiver to reliably upload large files to OpenList (local storage) without hitting Cloudflare's 100MB request body limit.
+SaveAny-Bot 是一个 Telegram 机器人，可将 Telegram 与网站的媒体内容转存到多种存储端。本版本加入了分片接收服务，专门用于 OpenList 本地存储的稳定大文件上传，避免 Cloudflare 的 100MB 请求体限制。
 
-## Features
+## 🎯 特性
 
-- Support documents / videos / photos / stickers… and even [Telegraph](https://telegra.ph/)
-- Bypass "restrict saving content" media
-- Batch download
-- Streaming transfer
-- Multi-user support
-- Auto organize files based on storage rules
-- Watch specified chats and auto-save messages, with filters
-- Transfer files between different storage backends
-- Integrate with yt-dlp to download and save media from 1000+ websites
-- Aria2 integration to download files from URLs/magnets and save to storages
-- Write JS parser plugins to save files from almost any website
-- Storage backends:
+- 支持文档/视频/图片/贴纸…甚至还有 [Telegraph](https://telegra.ph/)
+- 破解禁止保存的文件
+- 批量下载
+- 流式传输
+- 多用户使用
+- 基于存储规则的自动整理
+- 监听并自动转存指定聊天的消息, 支持过滤
+- 在不同存储端之间转存文件
+- 集成 yt-dlp, 从所支持的网站下载并转存媒体文件
+- 集成 Aria2, 支持直链/磁力下载和转存
+- 使用 js 编写解析器插件以转存任意网站的文件
+- 存储端支持:
   - Alist
   - S3
   - WebDAV
-  - Local filesystem
-  - Telegram (re-upload to specified chats)
+  - 本地磁盘
+  - Telegram (重传回指定聊天)
 
-## Fork Features (Chunked Upload for OpenList)
+## 本版本新增功能（分片上传）
 
-- WebDAV storage can be routed to a chunked receiver via `receiver_url`.
-- Resumable uploads using server-side offset checks.
-- Staging to final directory with atomic move on completion.
-- Upload manifests and append-only log for tracking.
-- Automatic cleanup of stale staging files.
+- WebDAV 存储新增 `receiver_url`，将上传转发到分片接收端。
+- 断点续传（服务端校验 offset）。
+- staging → final 原子移动，完成后才对外可见。
+- 上传清单与日志记录。
+- 自动清理过期的 staging 文件。
 
-## Architecture (Chunked Upload)
+## 分片上传流程
 
-1. Bot uploads file in chunks to the receiver (`/upload_chunk`).
-2. Receiver writes chunks to staging and records progress.
-3. Bot calls `/complete`, receiver moves the file to OpenList local storage.
+1. Bot 端把文件分片上传到接收端（`/upload_chunk`）。
+2. 接收端写入 staging 并记录进度。
+3. Bot 端调用 `/complete`，接收端将文件移动到 OpenList 本地目录。
 
-## Quick Start (Chunked Upload)
+## 快速开始（分片上传）
 
-### 1) Deploy receiver (Docker)
+### 1) 启动接收端（Docker）
 
 ```bash
 cd file-receiver
 docker compose up -d --build
 ```
 
-### 2) Configure storage
+### 2) 配置存储
 
 ```toml
 [[storages]]
@@ -76,27 +74,27 @@ receiver_url = "http://<receiver-host>:8080"
 chunk_size_mb = 10
 chunk_retries = 3
 
-# Keep these if you still need WebDAV listing/reading
+# 如果仍需 WebDAV 的列目录/读取功能可保留:
 # url = "https://example.com/dav"
 # username = "username"
 # password = "password"
 ```
 
-### 3) Run bot
+### 3) 启动 Bot
 
 ```bash
 go run ./cmd
 ```
 
-## Receiver Environment Variables
+## 接收端环境变量
 
-- `FINAL_DIR`: target directory (OpenList local storage path)
-- `STAGING_DIR`: staging directory for partial uploads
-- `MANIFEST_DIR`: where upload manifests are stored
-- `LOG_PATH`: append-only upload log
-- `STAGING_TTL_HOURS`: auto cleanup threshold
+- `FINAL_DIR`: 最终目录（OpenList 本地存储路径）
+- `STAGING_DIR`: 分片临时目录
+- `MANIFEST_DIR`: 上传清单目录
+- `LOG_PATH`: 上传日志
+- `STAGING_TTL_HOURS`: 过期清理时间（小时）
 
-## Thanks To
+## 鸣谢
 
 - [gotd](https://github.com/gotd/td)
 - [TG-FileStreamBot](https://github.com/EverythingSuckz/TG-FileStreamBot)
