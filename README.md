@@ -4,20 +4,24 @@
 
 **English** | [简体中文](./README_zh.md)
 
-> **Save Any Telegram File to Anywhere 📂. Support restrict saving content and beyond telegram.**
+> **Save Any Telegram File to Anywhere 📂. This fork adds chunked upload for OpenList/WebDAV to bypass Cloudflare upload limits.**
 
-[![Release Date](https://img.shields.io/github/release-date/krau/saveany-bot?label=release)](https://github.com/krau/saveany-bot/releases)
-[![tag](https://img.shields.io/github/v/tag/krau/saveany-bot.svg)](https://github.com/krau/saveany-bot/releases)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/krau/saveany-bot/build-release.yml)](https://github.com/krau/saveany-bot/actions/workflows/build-release.yml)
-[![Stars](https://img.shields.io/github/stars/krau/saveany-bot?style=flat)](https://github.com/krau/saveany-bot/stargazers)
-[![Downloads](https://img.shields.io/github/downloads/krau/saveany-bot/total)](https://github.com/krau/saveany-bot/releases)
-[![Issues](https://img.shields.io/github/issues/krau/saveany-bot)](https://github.com/krau/saveany-bot/issues)
-[![Pull Requests](https://img.shields.io/github/issues-pr/krau/saveany-bot?label=pr)](https://github.com/krau/saveany-bot/pulls)
-[![License](https://img.shields.io/github/license/krau/saveany-bot)](./LICENSE)
+[![Release Date](https://img.shields.io/github/release-date/Haruka041/SaveAny-Bot?label=release)](https://github.com/Haruka041/SaveAny-Bot/releases)
+[![tag](https://img.shields.io/github/v/tag/Haruka041/SaveAny-Bot.svg)](https://github.com/Haruka041/SaveAny-Bot/releases)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/Haruka041/SaveAny-Bot/build-release.yml)](https://github.com/Haruka041/SaveAny-Bot/actions/workflows/build-release.yml)
+[![Stars](https://img.shields.io/github/stars/Haruka041/SaveAny-Bot?style=flat)](https://github.com/Haruka041/SaveAny-Bot/stargazers)
+[![Downloads](https://img.shields.io/github/downloads/Haruka041/SaveAny-Bot/total)](https://github.com/Haruka041/SaveAny-Bot/releases)
+[![Issues](https://img.shields.io/github/issues/Haruka041/SaveAny-Bot)](https://github.com/Haruka041/SaveAny-Bot/issues)
+[![Pull Requests](https://img.shields.io/github/issues-pr/Haruka041/SaveAny-Bot?label=pr)](https://github.com/Haruka041/SaveAny-Bot/pulls)
+[![License](https://img.shields.io/github/license/Haruka041/SaveAny-Bot)](./LICENSE)
 
 </div>
 
-## 🎯 Features
+## Overview
+
+SaveAny-Bot is a Telegram bot that saves files/messages from Telegram and various websites to multiple storage backends. This fork adds a chunked upload receiver to reliably upload large files to OpenList (local storage) without hitting Cloudflare's 100MB request body limit.
+
+## Features
 
 - Support documents / videos / photos / stickers… and even [Telegraph](https://telegra.ph/)
 - Bypass "restrict saving content" media
@@ -37,49 +41,60 @@
   - Local filesystem
   - Telegram (re-upload to specified chats)
 
-## 📦 Quick Start
+## Fork Features (Chunked Upload for OpenList)
 
-Create a `config.toml` file with the following content:
+- WebDAV storage can be routed to a chunked receiver via `receiver_url`.
+- Resumable uploads using server-side offset checks.
+- Staging to final directory with atomic move on completion.
+- Upload manifests and append-only log for tracking.
+- Automatic cleanup of stale staging files.
 
-```toml
-lang = "en" # Language setting, "en" for English
-[telegram]
-token = "" # Your bot token, obtained from @BotFather
-[telegram.proxy]
-# Enable proxy for Telegram
-enable = false
-url = "socks5://127.0.0.1:7890"
+## Architecture (Chunked Upload)
 
-[[storages]]
-name = "Local Disk"
-type = "local"
-enable = true
-base_path = "./downloads"
+1. Bot uploads file in chunks to the receiver (`/upload_chunk`).
+2. Receiver writes chunks to staging and records progress.
+3. Bot calls `/complete`, receiver moves the file to OpenList local storage.
 
-[[users]]
-id = 114514 # Your Telegram account id
-storages = []
-blacklist = true
-```
+## Quick Start (Chunked Upload)
 
-Run Save Any Bot with Docker:
+### 1) Deploy receiver (Docker)
 
 ```bash
-docker run -d --name saveany-bot \
-    -v ./config.toml:/app/config.toml \
-    -v ./downloads:/app/downloads \
-    ghcr.io/krau/saveany-bot:latest
+cd file-receiver
+docker compose up -d --build
 ```
 
-Please [**read the docs**](https://sabot.unv.app/en/) for more configuration options and usage.
+### 2) Configure storage
 
-## Sponsors
+```toml
+[[storages]]
+name = "OpenList"
+type = "webdav"
+enable = true
+base_path = "/"
+receiver_url = "http://<receiver-host>:8080"
+chunk_size_mb = 10
+chunk_retries = 3
 
-This project is supported by [YxVM](https://yxvm.com/) and [NodeSupport](https://github.com/NodeSeekDev/NodeSupport).
+# Keep these if you still need WebDAV listing/reading
+# url = "https://example.com/dav"
+# username = "username"
+# password = "password"
+```
 
-If this project is helpful to you, consider sponsoring me via:
+### 3) Run bot
 
-- [Afdian](https://afdian.com/a/unvapp)
+```bash
+go run ./cmd
+```
+
+## Receiver Environment Variables
+
+- `FINAL_DIR`: target directory (OpenList local storage path)
+- `STAGING_DIR`: staging directory for partial uploads
+- `MANIFEST_DIR`: where upload manifests are stored
+- `LOG_PATH`: append-only upload log
+- `STAGING_TTL_HOURS`: auto cleanup threshold
 
 ## Thanks To
 
@@ -87,10 +102,4 @@ If this project is helpful to you, consider sponsoring me via:
 - [TG-FileStreamBot](https://github.com/EverythingSuckz/TG-FileStreamBot)
 - [gotgproto](https://github.com/celestix/gotgproto)
 - [tdl](https://github.com/iyear/tdl)
-- All the dependencies, contributors, sponsors and users.
-
-## Contact
-
-- [![Group](https://img.shields.io/badge/ProjectSaveAny-Group-blue)](https://t.me/ProjectSaveAny)
-- [![Discussion](https://img.shields.io/badge/Github-Discussion-white)](https://github.com/krau/saveany-bot/discussions)
-- [![PersonalChannel](https://img.shields.io/badge/Krau-PersonalChannel-cyan)](https://t.me/acherkrau)
+- All the dependencies, contributors and users.

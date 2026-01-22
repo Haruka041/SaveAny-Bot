@@ -1,0 +1,18 @@
+[Unit]
+Description=File Receiver Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/file-receiver
+Environment=STAGING_DIR=/opt/file-receiver/staging
+Environment=FINAL_DIR=/mnt/sd01/AList/haruka/Tele
+Environment=MANIFEST_DIR=/opt/file-receiver/manifests
+Environment=LOG_PATH=/opt/file-receiver/manifests/uploads.log
+Environment=STAGING_TTL_HOURS=48
+ExecStart=/usr/bin/python3 -m uvicorn server:app --host 0.0.0.0 --port 8080
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

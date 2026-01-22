@@ -21,6 +21,7 @@ type Webdav struct {
 	config config.WebdavStorageConfig
 	client *Client
 	logger *log.Logger
+	receiverClient *http.Client
 }
 
 func (w *Webdav) Init(ctx context.Context, cfg config.StorageConfig) error {
@@ -33,9 +34,16 @@ func (w *Webdav) Init(ctx context.Context, cfg config.StorageConfig) error {
 	}
 	w.config = *webdavConfig
 	w.logger = log.FromContext(ctx).WithPrefix(fmt.Sprintf("webdav[%s]", w.config.Name))
-	w.client = NewClient(w.config.URL, w.config.Username, w.config.Password, &http.Client{
-		Timeout: time.Hour * 12,
-	})
+	if w.config.URL != "" {
+		w.client = NewClient(w.config.URL, w.config.Username, w.config.Password, &http.Client{
+			Timeout: time.Hour * 12,
+		})
+	}
+	if w.config.ReceiverURL != "" {
+		w.receiverClient = &http.Client{
+			Timeout: time.Hour * 2,
+		}
+	}
 	return nil
 }
 
@@ -53,6 +61,9 @@ func (w *Webdav) JoinStoragePath(p string) string {
 
 func (w *Webdav) Save(ctx context.Context, r io.Reader, storagePath string) error {
 	w.logger.Infof("Saving file to %s", storagePath)
+	if w.config.ReceiverURL != "" {
+		return w.saveChunked(ctx, r, storagePath)
+	}
 	storagePath = w.JoinStoragePath(storagePath)
 	ext := path.Ext(storagePath)
 	base := strings.TrimSuffix(storagePath, ext)
@@ -79,6 +90,10 @@ func (w *Webdav) Save(ctx context.Context, r io.Reader, storagePath string) erro
 
 func (w *Webdav) Exists(ctx context.Context, storagePath string) bool {
 	w.logger.Debugf("Checking if file exists at %s", storagePath)
+	if w.client == nil {
+		w.logger.Warn("WebDAV client is not configured; Exists() skipped")
+		return false
+	}
 	exists, err := w.client.Exists(ctx, storagePath)
 	if err != nil {
 		w.logger.Errorf("Failed to check if file exists at %s: %v", storagePath, err)
@@ -90,6 +105,9 @@ func (w *Webdav) Exists(ctx context.Context, storagePath string) bool {
 // ListFiles implements storage.StorageListable
 func (w *Webdav) ListFiles(ctx context.Context, dirPath string) ([]storagetypes.FileInfo, error) {
 	w.logger.Infof("Listing files in %s", dirPath)
+	if w.client == nil {
+		return nil, fmt.Errorf("webdav client is not configured")
+	}
 
 	// Join with base path
 	fullPath := path.Join(w.config.BasePath, dirPath)
@@ -150,6 +168,9 @@ func (w *Webdav) ListFiles(ctx context.Context, dirPath string) ([]storagetypes.
 // OpenFile implements storage.StorageReadable
 func (w *Webdav) OpenFile(ctx context.Context, filePath string) (io.ReadCloser, int64, error) {
 	w.logger.Infof("Opening file %s", filePath)
+	if w.client == nil {
+		return nil, 0, fmt.Errorf("webdav client is not configured")
+	}
 
 	// Join with base path
 	fullPath := path.Join(w.config.BasePath, filePath)

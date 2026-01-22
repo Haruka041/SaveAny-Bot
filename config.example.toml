@@ -48,6 +48,10 @@ base_path = '/path/telegram'
 url = 'https://example.com/dav'
 username = 'username'
 password = 'password'
+# 分片接收服务 (启用后通过本地接收服务写入文件，绕过 Cloudflare 100MB 限制)
+# receiver_url = 'http://127.0.0.1:8080'
+# chunk_size_mb = 10
+# chunk_retries = 3
 
 # 用户列表
 [[users]]

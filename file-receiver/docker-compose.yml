@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  file-receiver:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - FINAL_DIR=/data/final
+      - STAGING_DIR=/data/staging
+      - MANIFEST_DIR=/data/manifests
+      - LOG_PATH=/data/manifests/uploads.log
+      - STAGING_TTL_HOURS=48
+    volumes:
+      - ./staging:/data/staging
+      - ./manifests:/data/manifests
+      - /mnt/sd01/AList/haruka/Tele:/data/final
+    restart: always

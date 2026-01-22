@@ -2,18 +2,22 @@
 
 # <img src="docs/static/logo.png" width="45" align="center"> Save Any Bot
 
-> **把 Telegram 上的文件转存到多种存储端**
+> **把 Telegram 上的文件转存到多种存储端。本版本新增分片上传接收端，用于绕过 Cloudflare 100MB 限制并适配 OpenList 本地存储。**
 
-[![Release Date](https://img.shields.io/github/release-date/krau/saveany-bot?label=release)](https://github.com/krau/saveany-bot/releases)
-[![tag](https://img.shields.io/github/v/tag/krau/saveany-bot.svg)](https://github.com/krau/saveany-bot/releases)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/krau/saveany-bot/build-release.yml)](https://github.com/krau/saveany-bot/actions/workflows/build-release.yml)
-[![Stars](https://img.shields.io/github/stars/krau/saveany-bot?style=flat)](https://github.com/krau/saveany-bot/stargazers)
-[![Downloads](https://img.shields.io/github/downloads/krau/saveany-bot/total)](https://github.com/krau/saveany-bot/releases)
-[![Issues](https://img.shields.io/github/issues/krau/saveany-bot)](https://github.com/krau/saveany-bot/issues)
-[![Pull Requests](https://img.shields.io/github/issues-pr/krau/saveany-bot?label=pr)](https://github.com/krau/saveany-bot/pulls)
-[![License](https://img.shields.io/github/license/krau/saveany-bot)](./LICENSE)
+[![Release Date](https://img.shields.io/github/release-date/Haruka041/SaveAny-Bot?label=release)](https://github.com/Haruka041/SaveAny-Bot/releases)
+[![tag](https://img.shields.io/github/v/tag/Haruka041/SaveAny-Bot.svg)](https://github.com/Haruka041/SaveAny-Bot/releases)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/Haruka041/SaveAny-Bot/build-release.yml)](https://github.com/Haruka041/SaveAny-Bot/actions/workflows/build-release.yml)
+[![Stars](https://img.shields.io/github/stars/Haruka041/SaveAny-Bot?style=flat)](https://github.com/Haruka041/SaveAny-Bot/stargazers)
+[![Downloads](https://img.shields.io/github/downloads/Haruka041/SaveAny-Bot/total)](https://github.com/Haruka041/SaveAny-Bot/releases)
+[![Issues](https://img.shields.io/github/issues/Haruka041/SaveAny-Bot)](https://github.com/Haruka041/SaveAny-Bot/issues)
+[![Pull Requests](https://img.shields.io/github/issues-pr/Haruka041/SaveAny-Bot?label=pr)](https://github.com/Haruka041/SaveAny-Bot/pulls)
+[![License](https://img.shields.io/github/license/Haruka041/SaveAny-Bot)](./LICENSE)
 
 </div>
+
+## 概述
+
+SaveAny-Bot 是一个 Telegram 机器人，可将 Telegram 与网站的媒体内容转存到多种存储端。本版本加入了分片接收服务，专门用于 OpenList 本地存储的稳定大文件上传，避免 Cloudflare 的 100MB 请求体限制。
 
 ## 🎯 特性
 
@@ -35,48 +39,60 @@
   - 本地磁盘
   - Telegram (重传回指定聊天)
 
-## 快速开始
+## 本版本新增功能（分片上传）
 
-创建文件 `config.toml` 并填入以下内容:
+- WebDAV 存储新增 `receiver_url`，将上传转发到分片接收端。
+- 断点续传（服务端校验 offset）。
+- staging → final 原子移动，完成后才对外可见。
+- 上传清单与日志记录。
+- 自动清理过期的 staging 文件。
 
-```toml
-[telegram]
-token = "" # 你的 Bot Token, 在 @BotFather 获取
-[telegram.proxy]
-# 启用代理连接 telegram
-enable = false
-url = "socks5://127.0.0.1:7890"
+## 分片上传流程
 
-[[storages]]
-name = "本地磁盘"
-type = "local"
-enable = true
-base_path = "./downloads"
+1. Bot 端把文件分片上传到接收端（`/upload_chunk`）。
+2. 接收端写入 staging 并记录进度。
+3. Bot 端调用 `/complete`，接收端将文件移动到 OpenList 本地目录。
 
-[[users]]
-id = 114514 # 你的 Telegram 账号 id
-storages = []
-blacklist = true
-```
+## 快速开始（分片上传）
 
-使用 Docker 运行 Save Any Bot:
+### 1) 启动接收端（Docker）
 
 ```bash
-docker run -d --name saveany-bot \
-    -v ./config.toml:/app/config.toml \
-    -v ./downloads:/app/downloads \
-    ghcr.io/krau/saveany-bot:latest
+cd file-receiver
+docker compose up -d --build
 ```
 
-请 [**查看文档**](https://sabot.unv.app/) 以获取更多配置选项和使用方法.
+### 2) 配置存储
 
-## 赞助
+```toml
+[[storages]]
+name = "OpenList"
+type = "webdav"
+enable = true
+base_path = "/"
+receiver_url = "http://<receiver-host>:8080"
+chunk_size_mb = 10
+chunk_retries = 3
 
-本项目受到 [YxVM](https://yxvm.com/) 与 [NodeSupport](https://github.com/NodeSeekDev/NodeSupport) 的支持.
+# 如果仍需 WebDAV 的列目录/读取功能可保留:
+# url = "https://example.com/dav"
+# username = "username"
+# password = "password"
+```
 
-如果这个项目对你有帮助, 你可以考虑通过以下方式赞助我:
+### 3) 启动 Bot
 
-- [爱发电](https://afdian.com/a/unvapp)
+```bash
+go run ./cmd
+```
+
+## 接收端环境变量
+
+- `FINAL_DIR`: 最终目录（OpenList 本地存储路径）
+- `STAGING_DIR`: 分片临时目录
+- `MANIFEST_DIR`: 上传清单目录
+- `LOG_PATH`: 上传日志
+- `STAGING_TTL_HOURS`: 过期清理时间（小时）
 
 ## 鸣谢
 
@@ -84,10 +100,4 @@ docker run -d --name saveany-bot \
 - [TG-FileStreamBot](https://github.com/EverythingSuckz/TG-FileStreamBot)
 - [gotgproto](https://github.com/celestix/gotgproto)
 - [tdl](https://github.com/iyear/tdl)
-- All the dependencies, contributors, sponsors and users.
-
-## 社区和关于作者
-
-- [![通知群组](https://img.shields.io/badge/ProjectSaveAny-Group-blue)](https://t.me/ProjectSaveAny)
-- [![讨论区](https://img.shields.io/badge/Github-Discussion-white)](https://github.com/krau/saveany-bot/discussions)
-- [![个人频道](https://img.shields.io/badge/Krau-PersonalChannel-cyan)](https://t.me/acherkrau)
+- All the dependencies, contributors and users.
