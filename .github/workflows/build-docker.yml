@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - "v*"
+    branches:
+      - "main"
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -30,8 +33,12 @@ jobs:
       - name: Extract Version Components
         id: vars
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          MAJOR_MINOR=$(echo "$VERSION" | cut -d. -f1,2)
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION=${GITHUB_SHA::7}
+          fi
+          MAJOR_MINOR=$(echo "$VERSION" | cut -d. -f1,2 || echo "0.0")
           SHORT_SHA=$(git rev-parse --short HEAD)
 
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
