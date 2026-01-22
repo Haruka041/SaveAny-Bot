@@ -21,14 +21,12 @@
 
 SaveAny-Bot is a Telegram bot that saves files/messages from Telegram and various websites to multiple storage backends. This fork adds a chunked upload receiver to reliably upload large files to OpenList (local storage) without hitting Cloudflare's 100MB request body limit.
 
-## Features
+## Core Features
 
 - Support documents / videos / photos / stickers… and even [Telegraph](https://telegra.ph/)
 - Bypass "restrict saving content" media
-- Batch download
-- Streaming transfer
-- Multi-user support
-- Auto organize files based on storage rules
+- Batch download and streaming transfer
+- Multi-user support with storage rules
 - Watch specified chats and auto-save messages, with filters
 - Transfer files between different storage backends
 - Integrate with yt-dlp to download and save media from 1000+ websites
@@ -49,22 +47,45 @@ SaveAny-Bot is a Telegram bot that saves files/messages from Telegram and variou
 - Upload manifests and append-only log for tracking.
 - Automatic cleanup of stale staging files.
 
-## Architecture (Chunked Upload)
+## Architecture
 
 1. Bot uploads file in chunks to the receiver (`/upload_chunk`).
 2. Receiver writes chunks to staging and records progress.
 3. Bot calls `/complete`, receiver moves the file to OpenList local storage.
+4. OpenList reads from local storage path, file becomes visible.
 
-## Quick Start (Chunked Upload)
+## Deployment
 
-### 1) Deploy receiver (Docker)
+### 1) Receiver (Docker)
 
 ```bash
 cd file-receiver
 docker compose up -d --build
 ```
 
-### 2) Configure storage
+### 2) Receiver (systemd)
+
+```bash
+sudo cp file-receiver.service /etc/systemd/system/file-receiver.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now file-receiver
+```
+
+### 3) Bot (example)
+
+```bash
+go run ./cmd
+```
+
+## Configuration
+
+### Global (excerpt)
+
+- `stream`: true for streaming; false writes to local temp file (better for resume).
+- `workers`: concurrent download tasks.
+- `threads`: max threads per task.
+
+### WebDAV / OpenList storage (key)
 
 ```toml
 [[storages]]
@@ -76,17 +97,20 @@ receiver_url = "http://<receiver-host>:8080"
 chunk_size_mb = 10
 chunk_retries = 3
 
-# Keep these if you still need WebDAV listing/reading
+# Keep these if you still need WebDAV listing/reading:
 # url = "https://example.com/dav"
 # username = "username"
 # password = "password"
 ```
 
-### 3) Run bot
+Notes:
+- Set `base_path = "/"` to avoid duplicated subfolders (e.g. `/Tele/Tele`).
+- If `receiver_url` is set, upload uses the receiver; otherwise it falls back to direct WebDAV PUT.
 
-```bash
-go run ./cmd
-```
+### Resume behavior
+
+- **Seekable source (stream=false)**: resumes from existing offset.
+- **Non-seekable (stream=true)**: staging is reset and upload restarts.
 
 ## Receiver Environment Variables
 
@@ -95,6 +119,25 @@ go run ./cmd
 - `MANIFEST_DIR`: where upload manifests are stored
 - `LOG_PATH`: append-only upload log
 - `STAGING_TTL_HOURS`: auto cleanup threshold
+
+## Receiver Endpoints
+
+- `POST /upload_chunk`: upload chunk (`file`, `filename`, `upload_id`, `offset`)
+- `POST /complete`: finalize (`filename`, `upload_id`)
+- `GET /status`: query status (`upload_id`)
+- `POST /reset`: reset staging for an upload id
+- `GET /healthz`: health check
+
+## Troubleshooting
+
+- **Path duplicated (Tele/Tele)**: check `base_path` and OpenList storage path.
+- **Upload fails**: ensure receiver is reachable and not proxied by Cloudflare for large uploads.
+- **Files not visible**: verify `FINAL_DIR` and refresh OpenList.
+
+## Security Notes
+
+- Receiver has no built-in auth by default. Keep it on a private network.
+- If exposed publicly, add reverse-proxy auth/ACL/rate limit.
 
 ## Thanks To
 
