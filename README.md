@@ -112,6 +112,43 @@ chunk_retries = 3
 - **可 seek 的读源（stream=false）**：可从已上传 offset 继续。
 - **不可 seek（stream=true）**：中断后会重置 staging 并重新上传。
 
+## 完整 config.toml 示例（已脱敏）
+
+```toml
+# 全局配置
+stream = true
+workers = 3
+threads = 4
+
+[telegram]
+token = "YOUR_BOT_TOKEN"
+app_id = 123456
+app_hash = "YOUR_APP_HASH"
+
+[telegram.userbot]
+enable = true
+session = "data/usersession.db"
+
+[[storages]]
+name = "OpenList"
+type = "webdav"
+enable = true
+base_path = "/"
+receiver_url = "http://<receiver-host>:8080"
+chunk_size_mb = 10
+chunk_retries = 3
+
+# 如果仍需 WebDAV 的列目录/读取功能可保留:
+# url = "https://example.com/dav"
+# username = "username"
+# password = "password"
+
+[[users]]
+id = 1234567890
+storages = ["OpenList"]
+blacklist = false
+```
+
 ## 接收端环境变量
 
 - `FINAL_DIR`: 最终目录（OpenList 本地存储路径）

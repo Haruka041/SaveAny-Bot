@@ -112,6 +112,43 @@ Notes:
 - **Seekable source (stream=false)**: resumes from existing offset.
 - **Non-seekable (stream=true)**: staging is reset and upload restarts.
 
+## Full config.toml example (sanitized)
+
+```toml
+# Global
+stream = true
+workers = 3
+threads = 4
+
+[telegram]
+token = "YOUR_BOT_TOKEN"
+app_id = 123456
+app_hash = "YOUR_APP_HASH"
+
+[telegram.userbot]
+enable = true
+session = "data/usersession.db"
+
+[[storages]]
+name = "OpenList"
+type = "webdav"
+enable = true
+base_path = "/"
+receiver_url = "http://<receiver-host>:8080"
+chunk_size_mb = 10
+chunk_retries = 3
+
+# Keep these if you still need WebDAV listing/reading:
+# url = "https://example.com/dav"
+# username = "username"
+# password = "password"
+
+[[users]]
+id = 1234567890
+storages = ["OpenList"]
+blacklist = false
+```
+
 ## Receiver Environment Variables
 
 - `FINAL_DIR`: target directory (OpenList local storage path)
