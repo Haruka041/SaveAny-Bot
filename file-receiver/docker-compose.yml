@@ -2,6 +2,7 @@ version: "3.8"
 
 services:
   file-receiver:
+    container_name: file-receiver
     build: .
     ports:
       - "8080:8080"
