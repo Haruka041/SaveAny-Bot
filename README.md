@@ -63,12 +63,65 @@ cd file-receiver
 docker compose up -d --build
 ```
 
+#### 接收端目录规划（示例）
+
+- `STAGING_DIR`: 分片临时目录（容器内：`/data/staging`）
+- `MANIFEST_DIR`: 上传清单目录（容器内：`/data/manifests`）
+- `FINAL_DIR`: OpenList 本地存储目录（容器内：`/data/final`）
+
+#### Docker 配置示例（已脱敏）
+
+```yaml
+version: "3.8"
+
+services:
+  file-receiver:
+    container_name: file-receiver
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - FINAL_DIR=/data/final
+      - STAGING_DIR=/data/staging
+      - MANIFEST_DIR=/data/manifests
+      - LOG_PATH=/data/manifests/uploads.log
+      - STAGING_TTL_HOURS=48
+    volumes:
+      - ./staging:/data/staging
+      - ./manifests:/data/manifests
+      - /path/to/openlist/storage:/data/final
+    restart: always
+```
+
 ### 2) 接收端（systemd）
 
 ```bash
 sudo cp file-receiver.service /etc/systemd/system/file-receiver.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now file-receiver
+```
+
+#### systemd 配置示例（已脱敏）
+
+```ini
+[Unit]
+Description=File Receiver Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/file-receiver
+Environment=STAGING_DIR=/opt/file-receiver/staging
+Environment=FINAL_DIR=/path/to/openlist/storage
+Environment=MANIFEST_DIR=/opt/file-receiver/manifests
+Environment=LOG_PATH=/opt/file-receiver/manifests/uploads.log
+Environment=STAGING_TTL_HOURS=48
+ExecStart=/usr/bin/python3 -m uvicorn server:app --host 0.0.0.0 --port 8080
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
 ```
 
 ### 3) Bot 端（示例）
@@ -164,6 +217,25 @@ blacklist = false
 - `GET /status`: 查询上传进度（参数：`upload_id`）
 - `POST /reset`: 清理某个 upload_id 的 staging
 - `GET /healthz`: 健康检查
+
+## 教程：从零搭建接收端 + OpenList
+
+1. **准备目录**
+   - 创建接收端目录：`/opt/file-receiver`
+   - 创建 staging/manifest 目录：`/opt/file-receiver/staging`、`/opt/file-receiver/manifests`
+   - 确认 OpenList 本地存储路径（例如 `/path/to/openlist/storage`）
+2. **部署接收端**
+   - Docker：编辑 `file-receiver/docker-compose.yml` 中的 `FINAL_DIR` 挂载路径
+   - systemd：编辑 `file-receiver/file-receiver.service` 中的 `FINAL_DIR`
+3. **启动接收端**
+   - Docker：`docker compose up -d --build`
+   - systemd：`systemctl enable --now file-receiver`
+4. **验证接收端**
+   - `curl http://<receiver-host>:8080/healthz`
+5. **配置 Bot**
+   - 在 `config.toml` 为 WebDAV/OpenList 存储配置 `receiver_url`
+6. **测试上传**
+   - 发送一个 >100MB 的文件，确保能够完成并在 OpenList 中可见
 
 ## 常见问题
 

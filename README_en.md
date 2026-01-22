@@ -63,12 +63,65 @@ cd file-receiver
 docker compose up -d --build
 ```
 
+#### Receiver directory layout (example)
+
+- `STAGING_DIR`: staging directory (container: `/data/staging`)
+- `MANIFEST_DIR`: manifest directory (container: `/data/manifests`)
+- `FINAL_DIR`: OpenList local storage (container: `/data/final`)
+
+#### Docker compose example (sanitized)
+
+```yaml
+version: "3.8"
+
+services:
+  file-receiver:
+    container_name: file-receiver
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - FINAL_DIR=/data/final
+      - STAGING_DIR=/data/staging
+      - MANIFEST_DIR=/data/manifests
+      - LOG_PATH=/data/manifests/uploads.log
+      - STAGING_TTL_HOURS=48
+    volumes:
+      - ./staging:/data/staging
+      - ./manifests:/data/manifests
+      - /path/to/openlist/storage:/data/final
+    restart: always
+```
+
 ### 2) Receiver (systemd)
 
 ```bash
 sudo cp file-receiver.service /etc/systemd/system/file-receiver.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now file-receiver
+```
+
+#### systemd example (sanitized)
+
+```ini
+[Unit]
+Description=File Receiver Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/file-receiver
+Environment=STAGING_DIR=/opt/file-receiver/staging
+Environment=FINAL_DIR=/path/to/openlist/storage
+Environment=MANIFEST_DIR=/opt/file-receiver/manifests
+Environment=LOG_PATH=/opt/file-receiver/manifests/uploads.log
+Environment=STAGING_TTL_HOURS=48
+ExecStart=/usr/bin/python3 -m uvicorn server:app --host 0.0.0.0 --port 8080
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
 ```
 
 ### 3) Bot (example)
@@ -164,6 +217,25 @@ blacklist = false
 - `GET /status`: query status (`upload_id`)
 - `POST /reset`: reset staging for an upload id
 - `GET /healthz`: health check
+
+## Tutorial: from zero to OpenList
+
+1. **Prepare directories**
+   - Receiver root: `/opt/file-receiver`
+   - Staging/manifest: `/opt/file-receiver/staging`, `/opt/file-receiver/manifests`
+   - Confirm OpenList local storage path (e.g. `/path/to/openlist/storage`)
+2. **Deploy receiver**
+   - Docker: edit `file-receiver/docker-compose.yml` and set `FINAL_DIR` mount
+   - systemd: edit `file-receiver/file-receiver.service` and set `FINAL_DIR`
+3. **Start receiver**
+   - Docker: `docker compose up -d --build`
+   - systemd: `systemctl enable --now file-receiver`
+4. **Verify**
+   - `curl http://<receiver-host>:8080/healthz`
+5. **Configure bot**
+   - Set `receiver_url` in your WebDAV/OpenList storage config
+6. **Upload a large file**
+   - Send a >100MB file and confirm it appears in OpenList
 
 ## Troubleshooting
 
