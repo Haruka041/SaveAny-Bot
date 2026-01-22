@@ -2,7 +2,7 @@
 
 # <img src="docs/static/logo.png" width="45" align="center"> Save Any Bot
 
-**English** | [简体中文](./README_zh.md)
+**English** | [简体中文](./README.md)
 
 > **Save Any Telegram File to Anywhere 📂. This fork adds chunked upload for OpenList/WebDAV to bypass Cloudflare upload limits.**
 

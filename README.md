@@ -2,6 +2,8 @@
 
 # <img src="docs/static/logo.png" width="45" align="center"> Save Any Bot
 
+**简体中文** | [English](./README_en.md)
+
 > **把 Telegram 上的文件转存到多种存储端。本版本新增分片上传接收端，用于绕过 Cloudflare 100MB 限制并适配 OpenList 本地存储。**
 
 [![Release Date](https://img.shields.io/github/release-date/Haruka041/SaveAny-Bot?label=release)](https://github.com/Haruka041/SaveAny-Bot/releases)
