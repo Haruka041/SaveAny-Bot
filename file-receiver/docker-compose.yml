@@ -14,5 +14,5 @@ services:
     volumes:
       - ./staging:/data/staging
       - ./manifests:/data/manifests
-      - /mnt/sd01/AList/haruka/Tele:/data/final
+      - /path/to/openlist/storage:/data/final
     restart: always

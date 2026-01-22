@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 WorkingDirectory=/opt/file-receiver
 Environment=STAGING_DIR=/opt/file-receiver/staging
-Environment=FINAL_DIR=/mnt/sd01/AList/haruka/Tele
+Environment=FINAL_DIR=/path/to/openlist/storage
 Environment=MANIFEST_DIR=/opt/file-receiver/manifests
 Environment=LOG_PATH=/opt/file-receiver/manifests/uploads.log
 Environment=STAGING_TTL_HOURS=48
