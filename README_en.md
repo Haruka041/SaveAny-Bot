@@ -209,6 +209,8 @@ blacklist = false
 - `MANIFEST_DIR`: where upload manifests are stored
 - `LOG_PATH`: append-only upload log
 - `STAGING_TTL_HOURS`: auto cleanup threshold
+- `URL_PREFIX`: URL path prefix (e.g. `/anyany0818999`, for reverse proxy/CF Tunnel)
+- `REQUIRE_PREFIX`: enforce prefix (true/false)
 
 ## Receiver Endpoints
 

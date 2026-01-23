@@ -209,6 +209,8 @@ blacklist = false
 - `MANIFEST_DIR`: 上传清单目录
 - `LOG_PATH`: 上传日志
 - `STAGING_TTL_HOURS`: 过期清理时间（小时）
+- `URL_PREFIX`: 路径前缀（如 `/anyany0818999`，用于反代/CF Tunnel）
+- `REQUIRE_PREFIX`: 是否强制前缀（true/false）
 
 ## 接收端接口
 
