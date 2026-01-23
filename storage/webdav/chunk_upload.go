@@ -26,20 +26,6 @@ const (
 
 func (w *Webdav) saveChunked(ctx context.Context, r io.Reader, storagePath string) error {
 	storagePath = w.JoinStoragePath(storagePath)
-	if w.client != nil {
-		ext := path.Ext(storagePath)
-		base := strings.TrimSuffix(storagePath, ext)
-		candidate := storagePath
-		for i := 1; w.Exists(ctx, candidate); i++ {
-			candidate = fmt.Sprintf("%s_%d%s", base, i, ext)
-			if i > 1000 {
-				w.logger.Errorf("Too many attempts to find a unique filename for %s", storagePath)
-				candidate = fmt.Sprintf("%s_%s%s", base, xid.New().String(), ext)
-				break
-			}
-		}
-		storagePath = candidate
-	}
 	safePath, err := sanitizeRelativePath(storagePath)
 	if err != nil {
 		return err

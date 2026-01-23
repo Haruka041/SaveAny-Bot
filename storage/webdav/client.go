@@ -97,8 +97,13 @@ func (c *Client) doRequest(ctx context.Context, method WebdavMethod, url string,
 }
 
 func (c *Client) Exists(ctx context.Context, remotePath string) (bool, error) {
-	url := c.BaseURL + remotePath
-	resp, err := c.doRequest(ctx, WebdavMethodPropfind, url, nil)
+	u, err := url.Parse(c.BaseURL)
+	if err != nil {
+		return false, err
+	}
+	remotePath = strings.Trim(remotePath, "/")
+	u.Path = path.Join(u.Path, remotePath)
+	resp, err := c.doRequest(ctx, WebdavMethodPropfind, u.String(), nil)
 	if err != nil {
 		return false, err
 	}
