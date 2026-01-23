@@ -10,6 +10,8 @@ Environment=FINAL_DIR=/path/to/openlist/storage
 Environment=MANIFEST_DIR=/opt/file-receiver/manifests
 Environment=LOG_PATH=/opt/file-receiver/manifests/uploads.log
 Environment=STAGING_TTL_HOURS=48
+Environment=REQUIRE_PREFIX=false
+Environment=URL_PREFIX=/your-prefix
 ExecStart=/usr/bin/python3 -m uvicorn server:app --host 0.0.0.0 --port 8080
 Restart=always
 RestartSec=3

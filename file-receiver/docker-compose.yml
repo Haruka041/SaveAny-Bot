@@ -12,6 +12,8 @@ services:
       - MANIFEST_DIR=/data/manifests
       - LOG_PATH=/data/manifests/uploads.log
       - STAGING_TTL_HOURS=48
+      - REQUIRE_PREFIX=false
+      - URL_PREFIX=/your-prefix
     volumes:
       - ./staging:/data/staging
       - ./manifests:/data/manifests
